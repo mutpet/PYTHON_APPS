@@ -1,0 +1,58 @@
+#python pip install --upgrade
+#python -m pip install requests
+
+#modulok:
+from requests import Session
+import requests
+#from requests import get
+import secrets
+import json
+#from pprint import pprint as pp
+
+class SetApiPost:
+    def __init__(self, token):
+        self.base_url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
+        self.headers = {"content-type": "application/x-www-form-urlencoded", "Accept-Encoding": "application/gzip", "X-RapidAPI-Host": "google-translate1.p.rapidapi.com", "X-RapidAPI-Key": token,}
+        self.session = Session()
+        self.session.headers.update(self.headers)
+
+    def translate(self, data):
+        url = self.base_url
+        response = self.session.post(url, data = data)
+        text= json.loads(response.text)
+        #print(text['data']['translations'][0]['translatedText'])
+        return print(text['data']['translations'][0]['translatedText'])
+
+
+def textValidate(user_input):
+       #Nem is szükséges a bemenet adattípusát vizsgálnunk, mert minden string adattípusú, ami a felhasználói konzolról jön.!   
+ try:
+    if type(user_input) != str:
+       #print(type(user_input)) 
+       print(f"Nem lefordítható szöveget adtál meg! Ez nem szöveg adattípus: {type(user_input)}") 
+       exit
+       #user_text = str(user_input)
+       #data = "q="+user_text+"&target=hu&source=en&model=nmt"
+       #print(data)
+       #translation = SetApiPost(secrets.API_KEY)
+       #translation.translate(data)   
+    elif type(user_input) == str and user_input == "exit":
+       print("Ez a program számára egy védett kulcsszó! Igy ez nem használható/lefordítható!")
+       exit
+    else:
+       #debug:
+       #user_text = str(user_input)
+       #print(type(user_input))
+
+       #api post parameter = "q=<LEFORDÍTANDÓ SZÖVEG>&target=hu&source=en&model=nmt"
+       data = "q="+user_input+"&target=hu&source=en&model=nmt"
+       #debug:
+       #print(data)       
+       translation = SetApiPost(secrets.API_KEY)
+       translation.translate(data)              
+ except TypeError:
+    print("Adattípus hiba! Nem lefordítható szöveget adtál meg! Kérlek próbáld meg újra!") 
+
+user_input = input("Kérlek add meg a magyar nyelvre lefordítandó angol szöveget!\n")
+textValidate(user_input)
+

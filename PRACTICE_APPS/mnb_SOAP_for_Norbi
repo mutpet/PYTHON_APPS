@@ -1,0 +1,149 @@
+"""_summary_
+_Descreption_: Hungarian National Bank(MNB) Daily EUR/USD exchange rate requester
+_URL_:https://www.mnb.hu/arfolyamok.asmx
+_Compatibility_: Python 3.x
+_Version_: 0.1.0
+_Author by_: Peter Mutter <mutter.peter@protonmail.com>
+_Created by_: 2022-03-29
+"""
+
+"""
+ZEEP SOAP KLIENS ALAP PÉLDA:
+import zeep
+wsdl = 'http://www.soapclient.com/xml/soapresponder.wsdl'
+client = zeep.Client(wsdl=wsdl)
+print(client.service.Method1('Zeep', 'is cool'))
+"""
+
+#Szükséges csomagtelepítések:
+#pip install zeep
+#pip install beautifulsoup4
+#pip install lxml
+
+#Használt modulok:
+from dataclasses import replace
+from zeep import Client
+from datetime import datetime
+#import requests, xml.etree.ElementTree as ET
+#from itertools import islice
+from bs4 import BeautifulSoup
+
+#***Globális, kezdeti változók (már nem szükségesek.)***
+#***Aktuális dátum:
+#***current_date = datetime.today().strftime('%Y-%m-%d')
+#***MNB SOAP BASIC GET URL:
+#***wsdl_url = "http://www.mnb.hu/arfolyamok.asmx?wsdl"
+#***zeep SOAP Kliens:
+#***soap_client = Client(wsdl_url)
+#*******************************************************
+
+"""_summary_
+_Function_:MNBSoapRequest
+_Param|Type_:start_date|datetime, end_date|datetime, rateCurrency|str
+_Return_: output|mixed    
+"""
+def MNBSoapRequest(start_date, end_date, rateCurrency):
+ wsdl_url = "http://www.mnb.hu/arfolyamok.asmx?wsdl"
+ soap_client = Client(wsdl_url)
+ mnb_soap_result = soap_client.service.GetExchangeRates(start_date, end_date, rateCurrency)     
+ soup = BeautifulSoup(mnb_soap_result, 'xml')
+ #végigiterálunk a kapott soap xml eredmény <Day> .xml tag -én:
+ for i in soup.find_all('Day'):
+   #rate = i
+   rate = i.text
+   #az 'EUR' árfolyamérték meghatározása. (a kapott egybenlévő, csak egyben kezelhető, List[] adattípus 1. elemét megfelelően kivágjuk. És új list elemként hozzáadjuk a színezőkódokat és a devizanemet)
+   #eur = ['\x1b[1;31;40m'] + ["".join(rate[0 : 6])] + ['\x1b[1;32;40m'] + ['\20'] + ['HUF/EUR'] + ['\x1b[0m']
+   eur = ['\x1b[1;32;40m'] + ['\17'] + ['HUF/EUR'] + ['\20'] + ['\x1b[1;31;40m'] + ["".join(rate[0 : 6])] + ['\x1b[0m']
+   
+   #az 'USD' árfolyamérték meghatározása. (a kapott egybenlévő, csak egyben kezelhető, List[] adattípus 2. elemét megfelelően tovább folytatólagosan kivágjuk. És új list elemként hozzáadjuk a színezőkódokat és a devizanemet)
+   #usd = ['\x1b[1;31;40m'] + ["".join(rate[6 : 12])] + ['\x1b[1;32;40m'] + ['\20'] + ['HUF/USD'] + ['\x1b[0m']
+   usd = ['\x1b[1;32;40m'] + ['\17'] + ['HUF/USD'] + ['\20'] + ['\x1b[1;31;40m'] + ["".join(rate[6 : 12])] + ['\x1b[0m']
+
+   """
+   Ez is egy megoldása a: <Rate> nevű xml tag értékeinek a meghatározására: (ElementTree(ET) modul használatával)
+   eroot = ET.fromstring(mnb_soap_result)
+   rates = ['MNB hivatalos napi devizaárfolyam:'] + [ p.find('Rate').text for p in islice(eroot.iter('Day'), 0, 1) ] + ['HUF/EUR']
+   print(" ".join(rates))
+   """
+   #a megjelenítendő eredmény összefűzése: 
+   output = "\x1b[1;34;40m" + "Az MNB hivatalos napi devizaárfolyama: " + "\x1b[0m" + "\x1b[1;33;40m(" + str(start_date) + ")\x1b[0m" + "\n" + " ".join(eur) + "\n" + " ".join(usd)
+   
+   cucc = str(["".join(rate[6 : 12])])
+   
+   USD_currency_list_element = (rate[6 : 12])
+   USD_currency_str_item = str(USD_currency_list_element)
+   #print(USD_currency_str_Item)
+   USD_currency_str_item = USD_currency_str_item.replace(',','.')
+   print(USD_currency_str_item)
+   USD_currency_value = float(USD_currency_str_item)
+   print(USD_currency_value)
+   print(type(USD_currency_value))
+
+   #print(type(cucc)) 
+   #mystring = ''.join(map(str,cucc))
+   #print(str(mystring))
+   #x = mystring.replace(',','.')
+   #print(x)
+   #valami = '365.95'
+   #y = float(valami)
+   #print(y)
+   
+   #float(mystring)
+   
+   #-----------------------Tesztelés---------------------------
+   #Megjelenítendő eredmény kiiratásának tesztelése lépésenként:
+   #print('MNB hivatalos napi devizaárfolyam ' + str(start_date) + ':\n')
+   #print(" ".join(eur))
+   #print(" ".join(usd))
+   #----------------------------------------------------------- 
+
+   #visszatérési érték, kiiratás:
+   return print(output)
+   
+"""
+_TEST_:
+A SOAP lekérésből visszakapott eredmény .xml fájlba való írásának tesztje: 
+with open('mnb_eur_usd_napi_arfolyam.xml', 'w') as f:
+        f.write(mnb_soap_result)
+"""
+
+"""
+_TEST_:
+A: 'BeautifulSoup' nevű modul próbája/tesztelése: 
+#rate = str()
+soup = BeautifulSoup(mnb_soap_result, 'xml')
+for i in soup.find_all('Rate'):
+ rate = i
+ #rate = i.text 
+ #print(rate)
+ #Kiiratás színezve:
+ print(f"\x1b[6;30;42m MNB hivatalos napi devizaárfolyam:\x1b[0m \x1b[5;30;47m {rate} \x1b[0m")
+"""
+
+"""_summary_
+_Function_:UserDateInputValidation
+_Param|Type_:user_data_input|str
+_Return_: None    
+"""
+def UserDateInputValidation(user_date_input):
+ format = '%Y-%m-%d'
+ rateCurrency = 'EUR,USD'
+ check_date_format = True
+ try:
+    check_date_format = bool(datetime.strptime(user_date_input, format))
+ except ValueError:
+    check_date_format = False
+    print(f'Hiba történt a beviteli érték dátumértékké való átkonvertálásakor! Kérlek ellenőrizd a bevitt dátumértéket!\nAz általad megadott dátumérték: {user_date_input}')     
+ if user_date_input != '' and check_date_format == True:    
+         start_date = datetime.strptime(user_date_input, format)
+         end_date =  start_date
+         #az MNB SOAP hívást elvégző metódus meghívása (átadott paraméter(ek): 'start_date'|datetime, 'end_date'|datetime, 'rateCurrency|str' )
+         MNBSoapRequest(start_date, end_date, rateCurrency)
+ else: print("Nem megfelelő dátumértéket adtál meg!\nA megadott dátumérték: " + str(user_date_input) + "\nKérlek ellnőrizd és próbáld meg újra!")
+ return
+
+#a felhasználó által megadott bemeneti dátumérték eltárolása a: 'user_date_input' nevű változóba
+user_date_input = input("Kérlek add meg a devizaárfolyam dátumát (Év-hónap-nap formátumban)!\n")
+
+#a bemeneti érték validálását elvégző metódus meghívása (átadott paraméter(ek): 'user_date_input'|str (a felhasználó átal megadott érték))
+UserDateInputValidation(user_date_input)
